@@ -1,0 +1,96 @@
+{
+  "entities": {
+    "Classroom": {
+      "title": "Classroom",
+      "description": "A virtual classroom session created by an instructor.",
+      "type": "object",
+      "properties": {
+        "roomCode": {
+          "type": "string",
+          "description": "The unique code to join the classroom."
+        },
+        "instructorId": {
+          "type": "string",
+          "description": "The UID of the instructor who created the classroom."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The timestamp when the classroom was created."
+        },
+        "isActive": {
+          "type": "boolean",
+          "description": "Whether the classroom is currently active."
+        }
+      },
+      "required": ["roomCode", "instructorId", "createdAt", "isActive"]
+    },
+    "Question": {
+      "title": "Question",
+      "description": "A question submitted by a student.",
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string",
+          "description": "The text content of the question."
+        },
+        "upvotes": {
+          "type": "integer",
+          "description": "The number of upvotes for the question."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The timestamp when the question was created."
+        },
+        "isSelected": {
+          "type": "boolean",
+          "description": "Whether the question is currently selected by the instructor."
+        },
+        "authorId": {
+          "type": "string",
+          "description": "The anonymous UID of the author."
+        },
+        "classroomId": {
+          "type": "string",
+          "description": "The ID of the classroom this question belongs to."
+        }
+      },
+      "required": ["text", "upvotes", "createdAt", "isSelected", "authorId", "classroomId"]
+    },
+    "Vote": {
+      "title": "Vote",
+      "description": "A record of a user's upvote on a question.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "The UID of the user who voted."
+        },
+        "questionId": {
+          "type": "string",
+          "description": "The ID of the question that was voted on."
+        },
+        "classroomId": {
+          "type": "string",
+          "description": "The ID of the classroom this vote belongs to."
+        }
+      },
+      "required": ["userId", "questionId", "classroomId"]
+    }
+  },
+  "firestore": {
+    "/classrooms/{classroomId}": {
+      "schema": "Classroom",
+      "description": "Collection of all classrooms."
+    },
+    "/questions/{questionId}": {
+      "schema": "Question",
+      "description": "Collection of all questions."
+    },
+    "/votes/{voteId}": {
+      "schema": "Vote",
+      "description": "Collection of all votes to prevent double voting."
+    }
+  }
+}

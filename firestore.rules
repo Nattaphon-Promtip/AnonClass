@@ -1,0 +1,103 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: classrooms
+    // Fields: roomCode, instructorId, createdAt, isActive
+    //
+    // Collection: questions
+    // Fields: text, upvotes, createdAt, isSelected, authorId, classroomId
+    //
+    // Collection: votes
+    // Fields: userId, questionId, classroomId
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isInstructor() {
+      return isAuthenticated() && (
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+        (request.auth.token.email == "6831503045@lamduan.mfu.ac.th" && request.auth.token.email_verified == true)
+      );
+    }
+
+    function isClassroomActive(classroomId) {
+      return get(/databases/$(database)/documents/classrooms/$(classroomId)).data.isActive == true;
+    }
+
+    function isValidQuestion(data) {
+      return data.keys().hasAll(['text', 'upvotes', 'createdAt', 'isSelected', 'authorId', 'classroomId']) &&
+             data.text is string && data.text.size() > 0 && data.text.size() <= 300 &&
+             data.upvotes == 0 &&
+             data.createdAt is timestamp &&
+             data.isSelected == false &&
+             data.authorId == request.auth.uid &&
+             data.classroomId is string &&
+             isClassroomActive(data.classroomId);
+    }
+
+    function isValidVote(data, questionId) {
+      return data.keys().hasAll(['userId', 'questionId', 'classroomId']) &&
+             data.userId == request.auth.uid &&
+             data.questionId == questionId &&
+             isClassroomActive(data.classroomId);
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /classrooms/{classroomId} {
+      allow read: if isAuthenticated();
+      allow create: if isInstructor() && 
+                    request.resource.data.instructorId == request.auth.uid &&
+                    request.resource.data.isActive == true;
+      allow update: if isInstructor() && resource.data.instructorId == request.auth.uid;
+    }
+
+    match /questions/{questionId} {
+      allow read: if isAuthenticated();
+      
+      // ONLY students (non-instructors) can create questions
+      allow create: if isAuthenticated() && !isInstructor() && isValidQuestion(request.resource.data);
+
+      allow update: if isAuthenticated() && (
+        // Upvote logic
+        (!isInstructor() && 
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['upvotes']) &&
+         request.resource.data.upvotes == resource.data.upvotes + 1 &&
+         existsAfter(/databases/$(database)/documents/votes/$(request.auth.uid + '_' + questionId))) ||
+        // Instructor selection logic
+        (isInstructor() && 
+         get(/databases/$(database)/documents/classrooms/$(resource.data.classroomId)).data.instructorId == request.auth.uid &&
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isSelected']))
+      );
+
+      allow delete: if isInstructor() && 
+                    get(/databases/$(database)/documents/classrooms/$(resource.data.classroomId)).data.instructorId == request.auth.uid;
+    }
+
+    match /votes/{voteId} {
+      allow read: if isAuthenticated() && request.auth.uid == resource.data.userId;
+      allow create: if isAuthenticated() && !isInstructor() &&
+                    voteId == request.auth.uid + '_' + request.resource.data.questionId &&
+                    isValidVote(request.resource.data, request.resource.data.questionId);
+      allow update, delete: if false;
+    }
+
+    match /users/{userId} {
+      allow read: if isAuthenticated() && request.auth.uid == userId;
+      allow write: if false;
+    }
+  }
+}
