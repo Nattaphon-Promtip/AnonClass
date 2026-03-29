@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { 
+import {
   db, auth, googleProvider, signInWithPopup, onAuthStateChanged, User,
   collection, doc, setDoc, updateDoc, onSnapshot, query, orderBy, Timestamp, writeBatch, getDocFromServer, where, getDocs, limit,
   setPersistence, browserLocalPersistence, browserSessionPersistence
 } from './firebase';
 import { io, Socket } from 'socket.io-client';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  Send, ThumbsUp, Trash2, Eye, EyeOff, LogIn, LogOut, 
+import {
+  Send, ThumbsUp, Trash2, Eye, EyeOff, LogIn, LogOut,
   AlertCircle, CheckCircle2, Loader2, Presentation, X,
   Plus, Users, ArrowLeft, LogIn as JoinIcon
 } from 'lucide-react';
@@ -46,7 +46,7 @@ export default function App() {
   const [isInstructor, setIsInstructor] = useState(false);
   const [showPresentation, setShowPresentation] = useState(false);
   const [authReady, setAuthReady] = useState(false);
-  
+
   // Classroom State
   const [currentClassroom, setCurrentClassroom] = useState<Classroom | null>(null);
   const [joinCode, setJoinCode] = useState('');
@@ -130,12 +130,12 @@ export default function App() {
     }
 
     const q = query(
-      collection(db, 'questions'), 
+      collection(db, 'questions'),
       where('classroomId', '==', currentClassroom.id),
-      orderBy('upvotes', 'desc'), 
+      orderBy('upvotes', 'desc'),
       orderBy('createdAt', 'desc')
     );
-    
+
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const qs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Question));
       setQuestions(qs);
@@ -161,7 +161,7 @@ export default function App() {
     try {
       // Set persistence based on Remember Me
       await setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence);
-      
+
       if (rememberMe) {
         localStorage.setItem('anonclass_remember', 'true');
         localStorage.removeItem('anonclass_lastActive');
@@ -187,12 +187,12 @@ export default function App() {
     if (!user || !isInstructor) return;
     setIsCreating(true);
     setError(null);
-    
+
     try {
       const roomCode = nanoid(6).toUpperCase();
       const classroomId = nanoid();
       const classroomRef = doc(db, 'classrooms', classroomId);
-      
+
       const newClassroom = {
         id: classroomId,
         roomCode,
@@ -200,7 +200,7 @@ export default function App() {
         createdAt: Timestamp.now(),
         isActive: true
       };
-      
+
       await setDoc(classroomRef, newClassroom);
       setCurrentClassroom(newClassroom);
     } catch (err) {
@@ -214,25 +214,25 @@ export default function App() {
   const handleJoinClassroom = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!joinCode.trim()) return;
-    
+
     setIsJoining(true);
     setError(null);
-    
+
     try {
       const q = query(
-        collection(db, 'classrooms'), 
+        collection(db, 'classrooms'),
         where('roomCode', '==', joinCode.trim().toUpperCase()),
         where('isActive', '==', true),
         limit(1)
       );
-      
+
       const snapshot = await getDocs(q);
       if (snapshot.empty) {
         setError("Invalid room code or classroom is no longer active.");
         setIsJoining(false);
         return;
       }
-      
+
       const classroomData = snapshot.docs[0].data() as Classroom;
       setCurrentClassroom({ ...classroomData, id: snapshot.docs[0].id });
     } catch (err) {
@@ -267,8 +267,8 @@ export default function App() {
     }
   };
 
-  const selectedQuestion = useMemo(() => 
-    questions.find(q => q.id === selectedQuestionId), 
+  const selectedQuestion = useMemo(() =>
+    questions.find(q => q.id === selectedQuestionId),
     [questions, selectedQuestionId]
   );
 
@@ -289,7 +289,7 @@ export default function App() {
             <div className="w-8 h-8 bg-neutral-900 rounded-lg flex items-center justify-center text-white font-bold">A</div>
             <h1 className="text-xl font-semibold tracking-tight">AnonClass</h1>
           </div>
-          
+
           <div className="flex items-center gap-4">
             {user ? (
               <div className="flex items-center gap-3">
@@ -297,7 +297,7 @@ export default function App() {
                   <p className="text-sm font-medium leading-none">{user.displayName}</p>
                   <p className="text-xs text-neutral-500">{isInstructor ? 'Instructor' : 'Student'}</p>
                 </div>
-                <button 
+                <button
                   onClick={handleLogout}
                   className="p-2 hover:bg-neutral-100 rounded-full transition-colors"
                   title="Logout"
@@ -308,15 +308,15 @@ export default function App() {
             ) : (
               <div className="flex items-center gap-4">
                 <label className="flex items-center gap-2 cursor-pointer group">
-                  <input 
-                    type="checkbox" 
+                  <input
+                    type="checkbox"
                     checked={rememberMe}
                     onChange={(e) => setRememberMe(e.target.checked)}
                     className="w-4 h-4 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900"
                   />
                   <span className="text-xs text-neutral-500 group-hover:text-neutral-700 transition-colors">Remember Me</span>
                 </label>
-                <button 
+                <button
                   onClick={handleLogin}
                   className="flex items-center gap-2 bg-neutral-900 text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-neutral-800 transition-all active:scale-95"
                 >
@@ -346,7 +346,7 @@ export default function App() {
                     <h3 className="font-semibold">Join a Classroom</h3>
                   </div>
                   <form onSubmit={handleJoinClassroom} className="space-y-3">
-                    <input 
+                    <input
                       type="text"
                       value={joinCode}
                       onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
@@ -360,7 +360,7 @@ export default function App() {
                         {error}
                       </div>
                     )}
-                    <button 
+                    <button
                       type="submit"
                       disabled={isJoining || joinCode.length < 4}
                       className="w-full bg-neutral-900 text-white py-3 rounded-xl font-medium hover:bg-neutral-800 disabled:bg-neutral-200 disabled:text-neutral-400 transition-all flex items-center justify-center gap-2"
@@ -378,7 +378,7 @@ export default function App() {
                       <h3 className="font-semibold">Instructor Panel</h3>
                     </div>
                     <p className="text-sm text-neutral-400">Start a new classroom session to receive anonymous questions from your students.</p>
-                    <button 
+                    <button
                       onClick={handleCreateClassroom}
                       disabled={isCreating}
                       className="w-full bg-white text-neutral-900 py-3 rounded-xl font-medium hover:bg-neutral-100 transition-all flex items-center justify-center gap-2"
@@ -399,15 +399,15 @@ export default function App() {
                 </div>
                 <div className="space-y-4">
                   <label className="flex items-center justify-center gap-2 cursor-pointer group">
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       checked={rememberMe}
                       onChange={(e) => setRememberMe(e.target.checked)}
                       className="w-4 h-4 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900"
                     />
                     <span className="text-sm text-neutral-600 group-hover:text-neutral-900 transition-colors">Remember Me</span>
                   </label>
-                  <button 
+                  <button
                     onClick={handleLogin}
                     className="w-full bg-neutral-900 text-white py-4 rounded-xl font-medium hover:bg-neutral-800 transition-all shadow-lg shadow-neutral-200"
                   >
@@ -422,20 +422,20 @@ export default function App() {
             {/* Left Column: Classroom Info & Submission */}
             <div className="lg:col-span-4 space-y-6">
               <div className="bg-white border border-neutral-200 rounded-2xl p-6 space-y-6 shadow-sm">
-                <button 
+                <button
                   onClick={() => setCurrentClassroom(null)}
                   className="flex items-center gap-2 text-sm text-neutral-500 hover:text-neutral-900 transition-colors"
                 >
                   <ArrowLeft className="w-4 h-4" />
                   Leave Classroom
                 </button>
-                
+
                 <div className="space-y-4">
                   <div className="space-y-1">
                     <span className="text-[10px] font-mono uppercase tracking-widest text-neutral-400">Room Code</span>
                     <h2 className="text-4xl font-black tracking-tighter text-neutral-900">{currentClassroom.roomCode}</h2>
                   </div>
-                  
+
                   <div className="p-4 bg-neutral-50 rounded-xl flex flex-col items-center gap-2">
                     <p className="text-xs text-neutral-500 text-center">Share this code with your students to join the session.</p>
                   </div>
@@ -460,13 +460,13 @@ export default function App() {
                     <h2 className="font-semibold">Instructor Controls</h2>
                   </div>
                   <p className="text-sm text-neutral-300">Select a question from the feed to display it in presentation mode.</p>
-                  <button 
+                  <button
                     onClick={() => setShowPresentation(true)}
                     disabled={!selectedQuestionId}
                     className={cn(
                       "w-full py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2",
-                      selectedQuestionId 
-                        ? "bg-white text-neutral-900 hover:bg-neutral-100" 
+                      selectedQuestionId
+                        ? "bg-white text-neutral-900 hover:bg-neutral-100"
                         : "bg-neutral-800 text-neutral-500 cursor-not-allowed"
                     )}
                   >
@@ -488,9 +488,9 @@ export default function App() {
               <div className="space-y-4">
                 <AnimatePresence mode="popLayout">
                   {questions.map((q) => (
-                    <QuestionCard 
-                      key={q.id} 
-                      question={q} 
+                    <QuestionCard
+                      key={q.id}
+                      question={q}
                       onUpvote={() => handleUpvote(q.id)}
                       onSelect={() => handleSelectQuestion(q.id)}
                       isSelected={selectedQuestionId === q.id}
@@ -498,7 +498,7 @@ export default function App() {
                     />
                   ))}
                 </AnimatePresence>
-                
+
                 {questions.length === 0 && (
                   <div className="py-20 text-center space-y-2">
                     <p className="text-neutral-400 font-medium">No questions yet.</p>
@@ -514,13 +514,13 @@ export default function App() {
       {/* Presentation Mode Modal */}
       <AnimatePresence>
         {showPresentation && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 bg-neutral-900 flex flex-col items-center justify-center p-8 text-center"
           >
-            <button 
+            <button
               onClick={() => setShowPresentation(false)}
               className="absolute top-8 right-8 p-3 bg-neutral-800 text-white rounded-full hover:bg-neutral-700 transition-colors"
             >
@@ -591,6 +591,11 @@ function QuestionForm({ user, classroomId }: { user: User, classroomId: string }
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text })
       });
+
+      if (!modRes.ok) {
+        throw new Error("Moderation API failed");
+      }
+
       const modData = await modRes.json();
 
       if (modData.isInappropriate) {
@@ -639,7 +644,7 @@ function QuestionForm({ user, classroomId }: { user: User, classroomId: string }
     <form onSubmit={handleSubmit} className="bg-white border border-neutral-200 rounded-2xl p-6 space-y-4 shadow-sm">
       <div className="space-y-2">
         <label className="text-sm font-semibold text-neutral-700">Ask Anonymously</label>
-        <textarea 
+        <textarea
           value={text}
           onChange={(e) => {
             setText(e.target.value);
@@ -662,7 +667,7 @@ function QuestionForm({ user, classroomId }: { user: User, classroomId: string }
         </div>
       )}
 
-      <button 
+      <button
         type="submit"
         disabled={isSubmitting || !text.trim()}
         className="w-full bg-neutral-900 text-white py-3 rounded-xl font-medium hover:bg-neutral-800 disabled:bg-neutral-200 disabled:text-neutral-400 transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
@@ -688,7 +693,7 @@ function QuestionCard({ question, onUpvote, onSelect, isSelected, isInstructor }
   const isTop = question.upvotes >= 5;
 
   return (
-    <motion.div 
+    <motion.div
       layout
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
@@ -712,7 +717,7 @@ function QuestionCard({ question, onUpvote, onSelect, isSelected, isInstructor }
               {new Date(question.createdAt.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </span>
           </div>
-          
+
           <p className={cn(
             "text-neutral-800 leading-relaxed",
             question.upvotes > 10 ? "text-xl font-semibold" : "text-base font-medium"
@@ -721,7 +726,7 @@ function QuestionCard({ question, onUpvote, onSelect, isSelected, isInstructor }
           </p>
 
           <div className="flex items-center gap-4">
-            <button 
+            <button
               onClick={onUpvote}
               disabled={isInstructor}
               className={cn(
@@ -732,9 +737,9 @@ function QuestionCard({ question, onUpvote, onSelect, isSelected, isInstructor }
               <ThumbsUp className="w-4 h-4" />
               <span className="text-sm font-bold">{question.upvotes}</span>
             </button>
-            
+
             {isInstructor && (
-              <button 
+              <button
                 onClick={onSelect}
                 className={cn(
                   "flex items-center gap-1.5 text-sm font-medium transition-colors",
