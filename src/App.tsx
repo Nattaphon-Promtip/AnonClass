@@ -89,7 +89,7 @@ export default function App() {
         if (!isRemembered) {
           const lastActive = parseInt(localStorage.getItem('anonclass_lastActive') || '0');
           const now = Date.now();
-          if (lastActive > 0 && now - lastActive > SESSION_TIMEOUT_MS) {
+          if (!lastActive || now - lastActive > SESSION_TIMEOUT_MS) {
             handleLogout();
             setAuthReady(true);
             return;
