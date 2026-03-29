@@ -55,7 +55,9 @@ export default function App() {
   const [isJoining, setIsJoining] = useState(false);
 
   // Auth Extras
-  const [rememberMe, setRememberMe] = useState(false);
+  const [rememberMe, setRememberMe] = useState(
+    localStorage.getItem('anonclass_remember') === 'true'
+  );
 
   // --- Inactivity Tracking ---
   const updateActivity = useCallback(() => {
